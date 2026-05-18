@@ -62,7 +62,7 @@ SECTION 3: PUSH IMAGE TO GOOGLE CONTAINER REGISTRY
 docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
 
 # 3.2 Verify the image in GCR
-gcloud container images list --repository-format=list --filter="name:hello-gke"
+gcloud container images list --filter="name:hello-gke"
 
 # 3.3 View image details in GCR
 gcloud container images describe ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
@@ -384,3 +384,153 @@ SECTION 15: IMPORTANT NOTES
 ================================================================================
 END OF DEPLOYMENT GUIDE
 ================================================================================
+
+
+
+
+*********************************************************FOR THIS SPECIFIC APP****************************************************************************
+# 1.1 Authenticate with Google Cloud Platform
+gcloud auth login
+
+# 1.2 Set your GCP project
+gcloud config set project gcp-poc-496714
+
+# 1.3 Verify project is set
+gcloud config get-value project
+
+# 1.4 Configure Docker authentication with GCR
+gcloud auth configure-docker
+
+# 1.5 Enable required GCP APIs
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable container.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+
+================================================================================
+SECTION 2: BUILD DOCKER IMAGE
+================================================================================
+
+# 2.1 Set environment variables
+export PROJECT_ID=$(gcloud config get-value project)
+export IMAGE_NAME=hello-gke
+export IMAGE_TAG=latest
+export REGISTRY=gcr.io
+
+# 2.2 Build Docker image for AMD64 (GKE compatible architecture)
+docker buildx build --platform linux/amd64 -t ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} --load .
+
+# Alternative: Build without specifying platform (for local testing)
+docker build -t ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} .
+
+# 2.3 Verify the image was built
+docker images | grep hello-gke
+
+# 2.4 Test the image locally (optional)
+docker run -d -p 8080:8080 --name hello-gke-test ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+sleep 5
+curl http://localhost:8080/
+docker stop hello-gke-test
+docker rm hello-gke-test
+
+================================================================================
+SECTION 3: PUSH IMAGE TO GOOGLE CONTAINER REGISTRY
+================================================================================
+
+# 3.1 Push image to GCR
+docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+
+# 3.2 Verify the image in GCR
+gcloud container images list --filter="name:hello-gke"
+
+# 3.3 View image details in GCR
+gcloud container images describe ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+
+# 3.4 Tag with version number (optional - recommended for production)
+export VERSION=1.0.0
+docker tag ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+
+
+================================================================================
+SECTION 5: CONFIGURE KUBECTL FOR GKE CLUSTER
+================================================================================
+
+# 5.1 Get cluster credentials (configures kubectl authentication)
+gcloud container clusters get-credentials gke-autopilot-cluster-1 --zone us-central1
+
+# 5.2 Verify kubectl connection to cluster
+kubectl cluster-info
+
+# 5.3 View cluster context
+kubectl config current-context
+
+# 5.4 List available contexts
+kubectl config get-contexts
+
+# 5.5 Switch to a different context (if needed)
+kubectl config use-context <context-name>
+kubectl config use-context gke_gcp-poc-496714_us-central1_gke-autopilot-cluster-1
+
+================================================================================
+SECTION 6: UPDATE DEPLOYMENT MANIFEST
+================================================================================
+
+# 6.1 Update k8s/deployment.yaml with your image reference
+# Edit line 22 in k8s/deployment.yaml:
+# OLD: image: gcr.io/gcp-poc-496714/hello-gke:latest
+# NEW: image: gcr.io/${PROJECT_ID}/hello-gke:latest
+
+# Or use sed to replace automatically:
+sed -i '' "s|gcr.io/gcp-poc-496714/hello-gke:latest|${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml
+
+
+================================================================================
+SECTION 7: DEPLOY APPLICATION TO GKE
+================================================================================
+
+# 7.1 Deploy all resources (Deployment, Service, ConfigMap, ServiceAccount)
+kubectl apply -f k8s/deployment.yaml
+
+# 7.2 Verify deployment was created
+kubectl get deployments
+
+# 7.3 Check pods status
+kubectl get pods -l app=hello-gke
+
+# 7.4 Watch pods being created
+kubectl get pods -l app=hello-gke --watch
+
+# 7.5 Get detailed pod information
+kubectl describe pods -l app=hello-gke
+
+# 7.6 Check services
+kubectl get svc hello-gke
+
+# 7.7 Watch for LoadBalancer external IP (may take 1-2 minutes)
+kubectl get svc hello-gke --watch
+
+================================================================================
+SECTION 9: ACCESS THE APPLICATION
+================================================================================
+
+# 9.1 Get the external LoadBalancer IP
+EXTERNAL_IP=$(kubectl get svc hello-gke -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo $EXTERNAL_IP
+
+# 9.2 Test the root endpoint
+curl http://${EXTERNAL_IP}/
+
+# 9.3 Test the API endpoint
+curl http://${EXTERNAL_IP}/api/hello
+
+# 9.4 Test health check endpoint
+curl http://${EXTERNAL_IP}/actuator/health
+
+# 9.5 Test liveness probe
+curl http://${EXTERNAL_IP}/actuator/health/liveness
+
+# 9.6 Test readiness probe
+curl http://${EXTERNAL_IP}/actuator/health/readiness
+
+# 9.7 Pretty print JSON response
+curl http://${EXTERNAL_IP}/ | jq .

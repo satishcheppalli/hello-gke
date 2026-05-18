@@ -20,7 +20,7 @@ spec:
       containers:
       - name: hello-gke
         image: gcr.io/gcp-poc-496714/hello-gke:latest
-        imagePullPolicy: IfNotPresent
+        imagePullPolicy: Always
         ports:
         - containerPort: 8080
           name: http
@@ -63,10 +63,18 @@ spec:
         - name: config-volume
           mountPath: /etc/config
           readOnly: true
+        - name: tmp-volume
+          mountPath: /tmp
+        - name: cache-volume
+          mountPath: /app/cache
       volumes:
       - name: config-volume
         configMap:
           name: hello-gke-config
+      - name: tmp-volume
+        emptyDir: {}
+      - name: cache-volume
+        emptyDir: {}
       serviceAccountName: hello-gke-sa
       securityContext:
         fsGroup: 1000

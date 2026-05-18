@@ -20,7 +20,7 @@ resources:
     cpu: "500m"
 
 service:
-  type: ClusterIP
+  type: LoadBalancer
 
 autoscaling:
   enabled: false

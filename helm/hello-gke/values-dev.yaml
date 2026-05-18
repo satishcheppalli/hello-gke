@@ -27,4 +27,4 @@ autoscaling:
 
 image:
   tag: "latest"
-  pullPolicy: IfNotPresent
+  pullPolicy: Always

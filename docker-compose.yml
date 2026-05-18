@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  hello-gke:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: hello-gke-local
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_CONFIG_LOCATION=file:/etc/config/application.properties
+    volumes:
+      - ./src/main/resources/application.properties:/etc/config/application.properties:ro
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health/liveness"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    restart: unless-stopped
+    networks:
+      - hello-gke-network
+
+networks:
+  hello-gke-network:
+    driver: bridge

@@ -1,0 +1,14 @@
+.git
+.gitignore
+README.md
+.gradle
+.DS_Store
+*.log
+.idea
+*.iml
+build/
+.env
+.env.local
+k8s/
+.dockerignore
+Dockerfile

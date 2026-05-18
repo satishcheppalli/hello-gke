@@ -1,0 +1,142 @@
+# Default values for hello-gke Helm chart
+
+# Global configuration
+global:
+  projectId: "YOUR_PROJECT_ID"
+  region: "us-central1"
+  zone: "us-central1-a"
+
+# Image configuration
+image:
+  repository: gcr.io
+  name: hello-gke
+  tag: "latest"
+  pullPolicy: Always
+
+# Application configuration
+app:
+  name: hello-gke
+  replicaCount: 3
+
+  # Application properties
+  properties:
+    message: "hello gke"
+    version: "1.0.0"
+    environment: "gke"
+    logLevel: "INFO"
+    logLevelApp: "DEBUG"
+
+  # Server configuration
+  server:
+    port: 8080
+    contextPath: "/"
+
+  # Tomcat configuration
+  tomcat:
+    threads:
+      max: 200
+      minSpare: 10
+
+  # Actuator properties
+  actuator:
+    enabled: true
+    endpoints: "health,info"
+    healthShowDetails: "always"
+    probesEnabled: true
+
+# Resource configuration
+resources:
+  requests:
+    memory: "256Mi"
+    cpu: "100m"
+  limits:
+    memory: "512Mi"
+    cpu: "500m"
+
+# Health checks configuration
+healthChecks:
+  liveness:
+    enabled: true
+    initialDelaySeconds: 40
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+  readiness:
+    enabled: true
+    initialDelaySeconds: 20
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+# Service configuration
+service:
+  type: LoadBalancer
+  port: 80
+  targetPort: 8080
+  annotations: {}
+
+# Ingress configuration (optional)
+ingress:
+  enabled: false
+  className: "nginx"
+  annotations: {}
+  hosts:
+    - host: "hello-gke.example.com"
+      paths:
+        - path: /
+          pathType: Prefix
+  tls: []
+
+# Pod configuration
+podAnnotations: {}
+podSecurityContext:
+  fsGroup: 1000
+
+containerSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+# Volume configuration
+volumes:
+  tmpVolume:
+    enabled: true
+    size: "1Gi"
+  cacheVolume:
+    enabled: true
+    size: "1Gi"
+
+# Autoscaling configuration
+autoscaling:
+  enabled: false
+  minReplicas: 3
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+# Node selector
+nodeSelector: {}
+
+# Tolerations
+tolerations: []
+
+# Affinity
+affinity: {}
+
+# Labels
+labels:
+  app: hello-gke
+  version: v1
+
+# Namespace
+namespace: default
+
+# ServiceAccount
+serviceAccount:
+  create: true
+  annotations: {}
+  name: hello-gke-sa

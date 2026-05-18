@@ -208,6 +208,342 @@ curl http://${EXTERNAL_IP}/ | jq .
 
 
 ================================================================================
+SECTION 16: HELM HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 16.1 Helm general help
+helm help
+
+# 16.2 Helm version information
+helm version
+
+# 16.3 Helm list releases
+helm list --help
+helm list -a
+helm list -a -A
+
+# 16.4 Helm status
+helm status hello-gke --help
+helm status hello-gke
+
+# 16.5 Helm get commands
+helm get --help
+helm get values hello-gke
+helm get manifest hello-gke
+helm get notes hello-gke
+helm get hooks hello-gke
+helm get all hello-gke
+
+# 16.6 Helm chart information
+helm chart list --help
+helm search repo --help
+helm search hub hello-gke
+
+# 16.7 Helm lint and validation
+helm lint helm/hello-gke/ --help
+helm lint helm/hello-gke/
+
+# 16.8 Helm template rendering
+helm template --help
+helm template hello-gke helm/hello-gke/ --help
+helm template hello-gke helm/hello-gke/
+
+
+================================================================================
+SECTION 17: KUBECTL HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 17.1 Kubectl general help
+kubectl help
+kubectl --help
+
+# 17.2 Kubectl version
+kubectl version
+kubectl version --client
+
+# 17.3 Kubectl cluster information
+kubectl cluster-info
+kubectl cluster-info dump
+
+# 17.4 Kubectl configuration
+kubectl config --help
+kubectl config current-context
+kubectl config get-contexts
+kubectl config view
+
+# 17.5 Kubectl api resources
+kubectl api-resources
+kubectl api-versions
+
+# 17.6 Kubectl explain (detailed resource documentation)
+kubectl explain deployment
+kubectl explain deployment.spec
+kubectl explain pod.spec.containers
+kubectl explain service.spec
+
+# 17.7 Kubectl get help
+kubectl get --help
+kubectl get all -h
+
+# 17.8 Kubectl describe help
+kubectl describe --help
+kubectl describe nodes
+kubectl describe nodes <node-name>
+
+# 17.9 Kubectl logs help
+kubectl logs --help
+kubectl logs -l app=hello-gke --help
+
+# 17.10 Kubectl exec help
+kubectl exec --help
+kubectl exec -it <pod-name> -- /bin/sh --help
+
+
+================================================================================
+SECTION 18: DOCKER HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 18.1 Docker general help
+docker --help
+docker help
+
+# 18.2 Docker version and info
+docker version
+docker info
+
+# 18.3 Docker image commands help
+docker image --help
+docker images --help
+docker image ls -h
+
+# 18.4 Docker container commands help
+docker container --help
+docker run --help
+docker exec --help
+
+# 18.5 Docker build help
+docker build --help
+docker buildx build --help
+
+# 18.6 Docker push and pull help
+docker push --help
+docker pull --help
+
+# 18.7 Docker compose help
+docker compose --help
+docker compose up --help
+docker compose logs --help
+
+# 18.8 Docker inspect
+docker inspect --help
+docker inspect <image-id>
+docker inspect <container-id>
+
+
+================================================================================
+SECTION 19: GCLOUD HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 19.1 Gcloud general help
+gcloud help
+gcloud --help
+
+# 19.2 Gcloud version and configuration
+gcloud version
+gcloud config list
+gcloud config get-value project
+
+# 19.3 Gcloud container commands help
+gcloud container --help
+gcloud container clusters --help
+gcloud container images --help
+
+# 19.4 Gcloud authentication help
+gcloud auth --help
+gcloud auth list
+gcloud auth application-default print-access-token
+
+# 19.5 Gcloud compute commands help
+gcloud compute --help
+gcloud compute instances --help
+gcloud compute ssh --help
+
+# 19.6 Gcloud services commands help
+gcloud services --help
+gcloud services list
+gcloud services list --enabled
+
+# 19.7 Gcloud command structure
+gcloud <global-flag> <service/product> <resource> <command> <subcommand> <flags>
+
+
+================================================================================
+SECTION 20: GENERAL HELP COMMANDS AND DOCUMENTATION
+================================================================================
+
+# 20.1 Get help for Helm commands
+helm install --help
+helm upgrade --help
+helm rollback --help
+helm uninstall --help
+helm get --help
+
+# 20.2 Get help for Kubectl commands
+kubectl apply --help
+kubectl delete --help
+kubectl patch --help
+kubectl scale --help
+kubectl set --help
+kubectl rollout --help
+
+# 20.3 Get help for Docker commands
+docker run --help
+docker build --help
+docker compose up --help
+
+# 20.4 Get help for Gcloud commands
+gcloud container clusters --help
+gcloud container clusters create --help
+gcloud container clusters describe --help
+gcloud auth configure-docker --help
+
+# 20.5 Find all help documentation
+<command> --help
+<command> -h
+<command> help
+
+# 20.6 Man pages and documentation
+helm documentation: https://helm.sh/docs/
+kubectl documentation: https://kubernetes.io/docs/
+Docker documentation: https://docs.docker.com/
+GCloud documentation: https://cloud.google.com/docs
+
+
+================================================================================
+SECTION 21: USEFUL HELP ALIASES AND SHORTCUTS
+================================================================================
+
+# 21.1 Create useful aliases (add to ~/.bashrc or ~/.zshrc)
+alias k='kubectl'
+alias h='helm'
+alias d='docker'
+alias g='gcloud'
+
+# Usage with aliases:
+k get pods
+h status hello-gke
+d images
+g config list
+
+# 21.2 Create short help aliases
+alias kh='kubectl --help'
+alias hh='helm --help'
+alias dh='docker --help'
+alias gh='gcloud --help'
+
+# 21.3 Common kubectl shortcuts
+alias kg='kubectl get'
+alias kd='kubectl describe'
+alias kl='kubectl logs'
+alias kex='kubectl exec'
+alias kc='kubectl config'
+
+# 21.4 Common helm shortcuts
+alias hl='helm list'
+alias hs='helm status'
+alias hg='helm get'
+alias hi='helm install'
+alias hu='helm upgrade'
+
+# 21.5 Load aliases (run in current session)
+source ~/.bashrc
+source ~/.zshrc
+
+
+================================================================================
+SECTION 22: TROUBLESHOOTING HELP COMMANDS
+================================================================================
+
+# 22.1 Helm troubleshooting
+helm lint helm/hello-gke/ --strict --debug
+helm template hello-gke helm/hello-gke/ --debug
+helm install hello-gke helm/hello-gke/ --dry-run --debug
+helm get manifest hello-gke | kubectl apply --dry-run=client -f -
+
+# 22.2 Kubectl troubleshooting
+kubectl get events --sort-by='.lastTimestamp'
+kubectl describe pod <pod-name> | grep -A 20 "Events:"
+kubectl logs <pod-name> --previous
+kubectl exec -it <pod-name> -- /bin/sh
+
+# 22.3 Docker troubleshooting
+docker logs <container-id>
+docker inspect <container-id> | grep -A 10 '"Env":'
+docker stats <container-id>
+
+# 22.4 GCloud troubleshooting
+gcloud auth list
+gcloud config list
+gcloud services list --enabled
+gcloud container clusters list
+gcloud container images list
+
+# 22.5 Get help on specific error
+# Example: If you get a "pod not ready" error, try:
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl events -n <namespace>
+
+# 22.6 Debug pod networking
+kubectl exec -it <pod-name> -- ping <service-name>
+kubectl exec -it <pod-name> -- curl http://<service-name>:8080/health
+
+
+================================================================================
+SECTION 23: QUICK REFERENCE HELP COMMANDS BY TOOL
+================================================================================
+
+HELM QUICK HELP:
+  helm help              - General Helm help
+  helm list --help       - List releases help
+  helm install --help    - Install release help
+  helm upgrade --help    - Upgrade release help
+  helm status --help     - Status help
+  helm get --help        - Get release info help
+
+KUBECTL QUICK HELP:
+  kubectl help           - General kubectl help
+  kubectl get --help     - Get resources help
+  kubectl describe --help - Describe resources help
+  kubectl logs --help    - View logs help
+  kubectl exec --help    - Execute in pod help
+  kubectl config --help  - Configuration help
+
+DOCKER QUICK HELP:
+  docker help            - General Docker help
+  docker build --help    - Build image help
+  docker run --help      - Run container help
+  docker compose --help  - Docker Compose help
+  docker push --help     - Push image help
+
+GCLOUD QUICK HELP:
+  gcloud help            - General gcloud help
+  gcloud container --help - Container services help
+  gcloud auth --help     - Authentication help
+  gcloud config --help   - Configuration help
+
+API DOCUMENTATION:
+  Kubernetes API: https://kubernetes.io/docs/reference/
+  Helm API: https://helm.sh/docs/helm/
+  Docker API: https://docs.docker.com/engine/api/
+  GCloud API: https://cloud.google.com/docs/reference/libraries
+
+================================================================================
+END OF DEPLOYMENT GUIDE
+===============================================================================
+
+
+================================================================================
 SECTION 10: SCALE AND UPDATE DEPLOYMENT
 ================================================================================
 
@@ -534,3 +870,339 @@ curl http://${EXTERNAL_IP}/actuator/health/readiness
 
 # 9.7 Pretty print JSON response
 curl http://${EXTERNAL_IP}/ | jq .
+
+
+================================================================================
+SECTION 16: HELM HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 16.1 Helm general help
+helm help
+
+# 16.2 Helm version information
+helm version
+
+# 16.3 Helm list releases
+helm list --help
+helm list -a
+helm list -a -A
+
+# 16.4 Helm status
+helm status hello-gke --help
+helm status hello-gke
+
+# 16.5 Helm get commands
+helm get --help
+helm get values hello-gke
+helm get manifest hello-gke
+helm get notes hello-gke
+helm get hooks hello-gke
+helm get all hello-gke
+
+# 16.6 Helm chart information
+helm chart list --help
+helm search repo --help
+helm search hub hello-gke
+
+# 16.7 Helm lint and validation
+helm lint helm/hello-gke/ --help
+helm lint helm/hello-gke/
+
+# 16.8 Helm template rendering
+helm template --help
+helm template hello-gke helm/hello-gke/ --help
+helm template hello-gke helm/hello-gke/
+
+
+================================================================================
+SECTION 17: KUBECTL HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 17.1 Kubectl general help
+kubectl help
+kubectl --help
+
+# 17.2 Kubectl version
+kubectl version
+kubectl version --client
+
+# 17.3 Kubectl cluster information
+kubectl cluster-info
+kubectl cluster-info dump
+
+# 17.4 Kubectl configuration
+kubectl config --help
+kubectl config current-context
+kubectl config get-contexts
+kubectl config view
+
+# 17.5 Kubectl api resources
+kubectl api-resources
+kubectl api-versions
+
+# 17.6 Kubectl explain (detailed resource documentation)
+kubectl explain deployment
+kubectl explain deployment.spec
+kubectl explain pod.spec.containers
+kubectl explain service.spec
+
+# 17.7 Kubectl get help
+kubectl get --help
+kubectl get all -h
+
+# 17.8 Kubectl describe help
+kubectl describe --help
+kubectl describe nodes
+kubectl describe nodes <node-name>
+
+# 17.9 Kubectl logs help
+kubectl logs --help
+kubectl logs -l app=hello-gke --help
+
+# 17.10 Kubectl exec help
+kubectl exec --help
+kubectl exec -it <pod-name> -- /bin/sh --help
+
+
+================================================================================
+SECTION 18: DOCKER HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 18.1 Docker general help
+docker --help
+docker help
+
+# 18.2 Docker version and info
+docker version
+docker info
+
+# 18.3 Docker image commands help
+docker image --help
+docker images --help
+docker image ls -h
+
+# 18.4 Docker container commands help
+docker container --help
+docker run --help
+docker exec --help
+
+# 18.5 Docker build help
+docker build --help
+docker buildx build --help
+
+# 18.6 Docker push and pull help
+docker push --help
+docker pull --help
+
+# 18.7 Docker compose help
+docker compose --help
+docker compose up --help
+docker compose logs --help
+
+# 18.8 Docker inspect
+docker inspect --help
+docker inspect <image-id>
+docker inspect <container-id>
+
+
+================================================================================
+SECTION 19: GCLOUD HELP AND INFORMATION COMMANDS
+================================================================================
+
+# 19.1 Gcloud general help
+gcloud help
+gcloud --help
+
+# 19.2 Gcloud version and configuration
+gcloud version
+gcloud config list
+gcloud config get-value project
+
+# 19.3 Gcloud container commands help
+gcloud container --help
+gcloud container clusters --help
+gcloud container images --help
+
+# 19.4 Gcloud authentication help
+gcloud auth --help
+gcloud auth list
+gcloud auth application-default print-access-token
+
+# 19.5 Gcloud compute commands help
+gcloud compute --help
+gcloud compute instances --help
+gcloud compute ssh --help
+
+# 19.6 Gcloud services commands help
+gcloud services --help
+gcloud services list
+gcloud services list --enabled
+
+# 19.7 Gcloud command structure
+gcloud <global-flag> <service/product> <resource> <command> <subcommand> <flags>
+
+
+================================================================================
+SECTION 20: GENERAL HELP COMMANDS AND DOCUMENTATION
+================================================================================
+
+# 20.1 Get help for Helm commands
+helm install --help
+helm upgrade --help
+helm rollback --help
+helm uninstall --help
+helm get --help
+
+# 20.2 Get help for Kubectl commands
+kubectl apply --help
+kubectl delete --help
+kubectl patch --help
+kubectl scale --help
+kubectl set --help
+kubectl rollout --help
+
+# 20.3 Get help for Docker commands
+docker run --help
+docker build --help
+docker compose up --help
+
+# 20.4 Get help for Gcloud commands
+gcloud container clusters --help
+gcloud container clusters create --help
+gcloud container clusters describe --help
+gcloud auth configure-docker --help
+
+# 20.5 Find all help documentation
+<command> --help
+<command> -h
+<command> help
+
+# 20.6 Man pages and documentation
+helm documentation: https://helm.sh/docs/
+kubectl documentation: https://kubernetes.io/docs/
+Docker documentation: https://docs.docker.com/
+GCloud documentation: https://cloud.google.com/docs
+
+
+================================================================================
+SECTION 21: USEFUL HELP ALIASES AND SHORTCUTS
+================================================================================
+
+# 21.1 Create useful aliases (add to ~/.bashrc or ~/.zshrc)
+alias k='kubectl'
+alias h='helm'
+alias d='docker'
+alias g='gcloud'
+
+# Usage with aliases:
+k get pods
+h status hello-gke
+d images
+g config list
+
+# 21.2 Create short help aliases
+alias kh='kubectl --help'
+alias hh='helm --help'
+alias dh='docker --help'
+alias gh='gcloud --help'
+
+# 21.3 Common kubectl shortcuts
+alias kg='kubectl get'
+alias kd='kubectl describe'
+alias kl='kubectl logs'
+alias kex='kubectl exec'
+alias kc='kubectl config'
+
+# 21.4 Common helm shortcuts
+alias hl='helm list'
+alias hs='helm status'
+alias hg='helm get'
+alias hi='helm install'
+alias hu='helm upgrade'
+
+# 21.5 Load aliases (run in current session)
+source ~/.bashrc
+source ~/.zshrc
+
+
+================================================================================
+SECTION 22: TROUBLESHOOTING HELP COMMANDS
+================================================================================
+
+# 22.1 Helm troubleshooting
+helm lint helm/hello-gke/ --strict --debug
+helm template hello-gke helm/hello-gke/ --debug
+helm install hello-gke helm/hello-gke/ --dry-run --debug
+helm get manifest hello-gke | kubectl apply --dry-run=client -f -
+
+# 22.2 Kubectl troubleshooting
+kubectl get events --sort-by='.lastTimestamp'
+kubectl describe pod <pod-name> | grep -A 20 "Events:"
+kubectl logs <pod-name> --previous
+kubectl exec -it <pod-name> -- /bin/sh
+
+# 22.3 Docker troubleshooting
+docker logs <container-id>
+docker inspect <container-id> | grep -A 10 '"Env":'
+docker stats <container-id>
+
+# 22.4 GCloud troubleshooting
+gcloud auth list
+gcloud config list
+gcloud services list --enabled
+gcloud container clusters list
+gcloud container images list
+
+# 22.5 Get help on specific error
+# Example: If you get a "pod not ready" error, try:
+kubectl describe pod <pod-name>
+kubectl logs <pod-name>
+kubectl events -n <namespace>
+
+# 22.6 Debug pod networking
+kubectl exec -it <pod-name> -- ping <service-name>
+kubectl exec -it <pod-name> -- curl http://<service-name>:8080/health
+
+
+================================================================================
+SECTION 23: QUICK REFERENCE HELP COMMANDS BY TOOL
+================================================================================
+
+HELM QUICK HELP:
+  helm help              - General Helm help
+  helm list --help       - List releases help
+  helm install --help    - Install release help
+  helm upgrade --help    - Upgrade release help
+  helm status --help     - Status help
+  helm get --help        - Get release info help
+
+KUBECTL QUICK HELP:
+  kubectl help           - General kubectl help
+  kubectl get --help     - Get resources help
+  kubectl describe --help - Describe resources help
+  kubectl logs --help    - View logs help
+  kubectl exec --help    - Execute in pod help
+  kubectl config --help  - Configuration help
+
+DOCKER QUICK HELP:
+  docker help            - General Docker help
+  docker build --help    - Build image help
+  docker run --help      - Run container help
+  docker compose --help  - Docker Compose help
+  docker push --help     - Push image help
+
+GCLOUD QUICK HELP:
+  gcloud help            - General gcloud help
+  gcloud container --help - Container services help
+  gcloud auth --help     - Authentication help
+  gcloud config --help   - Configuration help
+
+API DOCUMENTATION:
+  Kubernetes API: https://kubernetes.io/docs/reference/
+  Helm API: https://helm.sh/docs/helm/
+  Docker API: https://docs.docker.com/engine/api/
+  GCloud API: https://cloud.google.com/docs/reference/libraries
+
+================================================================================
+END OF DEPLOYMENT GUIDE
+===============================================================================

@@ -1,0 +1,30 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "hello-gke.fullname" . }}-config
+  namespace: {{ .Values.namespace }}
+  labels:
+    {{- include "hello-gke.labels" . | nindent 4 }}
+data:
+  application.properties: |
+    spring.application.name={{ .Values.app.name }}
+    server.port={{ .Values.app.server.port }}
+    server.servlet.context-path={{ .Values.app.server.contextPath }}
+    logging.level.root={{ .Values.app.properties.logLevel }}
+    logging.level.com.example={{ .Values.app.properties.logLevelApp }}
+
+    # Application properties
+    app.message={{ .Values.app.properties.message }}
+    app.version={{ .Values.app.properties.version }}
+    app.environment={{ .Values.app.properties.environment }}
+
+    # Actuator properties
+    {{- if .Values.app.actuator.enabled }}
+    management.endpoints.web.exposure.include={{ .Values.app.actuator.endpoints }}
+    management.endpoint.health.show-details={{ .Values.app.actuator.healthShowDetails }}
+    management.health.probes.enabled={{ .Values.app.actuator.probesEnabled }}
+    {{- end }}
+
+    # Tomcat properties
+    server.tomcat.threads.max={{ .Values.app.tomcat.threads.max }}
+    server.tomcat.threads.min-spare={{ .Values.app.tomcat.threads.minSpare }}

@@ -89,7 +89,7 @@ The application will be available at `http://localhost:8080/api/hello`
 
 1. **Set your GCP Project ID**
 ```bash
-export PROJECT_ID=your-gcp-project-id
+export PROJECT_ID=gcp-poc-496714  #your-gcp-project-id
 ```
 
 2. **Build Docker image**

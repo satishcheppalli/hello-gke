@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
       - name: hello-gke
-        image: gcr.io/PROJECT_ID/hello-gke:latest
+        image: gcr.io/gcp-poc-496714/hello-gke:latest
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 8080

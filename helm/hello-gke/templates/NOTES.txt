@@ -1,31 +1,31 @@
 1. Get the application URL by running these commands:
 {{- if contains "NodePort" .Values.service.type }}
-  export NODE_PORT=$(kubectl get --namespace {{ .Values.namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "hello-gke.fullname" . }})
-  export NODE_IP=$(kubectl get nodes --namespace {{ .Values.namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
+  export NODE_PORT=$(kubectl get --namespace {{ .Release.Namespace }} -o jsonpath="{.spec.ports[0].nodePort}" services {{ include "hello-gke.fullname" . }})
+  export NODE_IP=$(kubectl get nodes --namespace {{ .Release.Namespace }} -o jsonpath="{.items[0].status.addresses[0].address}")
   echo http://$NODE_IP:$NODE_PORT
 {{- else if contains "LoadBalancer" .Values.service.type }}
   NOTE: It may take a few minutes for the LoadBalancer IP to be available.
   You can watch the status by running:
-    kubectl get --namespace {{ .Values.namespace }} svc -w {{ include "hello-gke.fullname" . }}
+    kubectl get --namespace {{ .Release.Namespace }} svc -w {{ include "hello-gke.fullname" . }}
 
   Get the external IP:
-    export EXTERNAL_IP=$(kubectl get svc --namespace {{ .Values.namespace }} {{ include "hello-gke.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+    export EXTERNAL_IP=$(kubectl get svc --namespace {{ .Release.Namespace }} {{ include "hello-gke.fullname" . }} -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
     echo http://$EXTERNAL_IP
 {{- else if contains "ClusterIP" .Values.service.type }}
-  export POD_NAME=$(kubectl get pods --namespace {{ .Values.namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
-  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Values.namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
+  export POD_NAME=$(kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" -o jsonpath="{.items[0].metadata.name}")
+  export CONTAINER_PORT=$(kubectl get pod --namespace {{ .Release.Namespace }} $POD_NAME -o jsonpath="{.spec.containers[0].ports[0].containerPort}")
   echo "Visit http://127.0.0.1:8080 to use your application"
-  kubectl --namespace {{ .Values.namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
+  kubectl --namespace {{ .Release.Namespace }} port-forward $POD_NAME 8080:$CONTAINER_PORT
 {{- end }}
 
 2. Check the deployment status:
-  kubectl get deployment --namespace {{ .Values.namespace }} {{ include "hello-gke.fullname" . }}
+  kubectl get deployment --namespace {{ .Release.Namespace }} {{ include "hello-gke.fullname" . }}
 
 3. View the pod status:
-  kubectl get pods --namespace {{ .Values.namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
+  kubectl get pods --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}"
 
 4. View the logs:
-  kubectl logs --namespace {{ .Values.namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" --tail=50 -f
+  kubectl logs --namespace {{ .Release.Namespace }} -l "app.kubernetes.io/name={{ include "hello-gke.name" . }},app.kubernetes.io/instance={{ .Release.Name }}" --tail=50 -f
 
 5. Test the application endpoints:
   # Root endpoint
@@ -44,7 +44,7 @@
   curl http://$EXTERNAL_IP/actuator/health/readiness
 
 6. To upgrade the release:
-  helm upgrade {{ .Release.Name }} helm/hello-gke --namespace {{ .Values.namespace }} -f values.yaml
+  helm upgrade {{ .Release.Name }} helm/hello-gke --namespace {{ .Release.Namespace }} -f values.yaml
 
 7. To uninstall the release:
-  helm uninstall {{ .Release.Name }} --namespace {{ .Values.namespace }}
+  helm uninstall {{ .Release.Name }} --namespace {{ .Release.Namespace }}

@@ -119,6 +119,26 @@ kubectl config use-context <context-name>
 
 
 ================================================================================
+SECTION 5.5: CREATE NAMESPACES
+================================================================================
+
+# 5.5.1 Create dev namespace if it doesn't exist
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+
+# 5.5.2 Create staging namespace if it doesn't exist
+kubectl create namespace staging --dry-run=client -o yaml | kubectl apply -f -
+
+# 5.5.3 Create prod namespace if it doesn't exist
+kubectl create namespace prod --dry-run=client -o yaml | kubectl apply -f -
+
+# 5.5.4 Verify namespaces were created
+kubectl get namespaces
+
+# 5.5.5 Set default namespace to dev (optional)
+kubectl config set-context --current --namespace=dev
+
+
+================================================================================
 SECTION 6: UPDATE DEPLOYMENT MANIFEST
 ================================================================================
 
@@ -135,26 +155,29 @@ sed -i '' "s|gcr.io/gcp-poc-496714/hello-gke:latest|${REGISTRY}/${PROJECT_ID}/${
 SECTION 7: DEPLOY APPLICATION TO GKE
 ================================================================================
 
-# 7.1 Deploy all resources (Deployment, Service, ConfigMap, ServiceAccount)
-kubectl apply -f k8s/deployment.yaml
+# 7.1 Create dev namespace if not exists
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
 
-# 7.2 Verify deployment was created
-kubectl get deployments
+# 7.2 Deploy all resources to dev namespace (Deployment, Service, ConfigMap, ServiceAccount)
+kubectl apply -f k8s/deployment.yaml -n dev
 
-# 7.3 Check pods status
-kubectl get pods -l app=hello-gke
+# 7.3 Verify deployment was created
+kubectl get deployments -n dev
 
-# 7.4 Watch pods being created
-kubectl get pods -l app=hello-gke --watch
+# 7.4 Check pods status
+kubectl get pods -l app=hello-gke -n dev
 
-# 7.5 Get detailed pod information
-kubectl describe pods -l app=hello-gke
+# 7.5 Watch pods being created
+kubectl get pods -l app=hello-gke -n dev --watch
 
-# 7.6 Check services
-kubectl get svc hello-gke
+# 7.6 Get detailed pod information
+kubectl describe pods -l app=hello-gke -n dev
 
-# 7.7 Watch for LoadBalancer external IP (may take 1-2 minutes)
-kubectl get svc hello-gke --watch
+# 7.7 Check services
+kubectl get svc hello-gke -n dev
+
+# 7.8 Watch for LoadBalancer external IP (may take 1-2 minutes)
+kubectl get svc hello-gke -n dev --watch
 
 
 ================================================================================
@@ -162,30 +185,30 @@ SECTION 8: VIEW APPLICATION LOGS
 ================================================================================
 
 # 8.1 View logs from all pods with app=hello-gke label
-kubectl logs -l app=hello-gke --tail=50
+kubectl logs -l app=hello-gke --tail=50 -n dev
 
 # 8.2 Stream logs continuously
-kubectl logs -l app=hello-gke --tail=50 -f
+kubectl logs -l app=hello-gke --tail=50 -f -n dev
 
 # 8.3 View logs from a specific pod
-kubectl logs <pod-name> --tail=100
+kubectl logs <pod-name> --tail=100 -n dev
 
 # 8.4 Stream logs from a specific pod
-kubectl logs <pod-name> -f
+kubectl logs <pod-name> -f -n dev
 
 # 8.5 View logs with timestamps
-kubectl logs -l app=hello-gke --timestamps=true
+kubectl logs -l app=hello-gke --timestamps=true -n dev
 
 # 8.6 Get previous pod logs (if pod crashed)
-kubectl logs <pod-name> --previous
+kubectl logs <pod-name> --previous -n dev
 
 
 ================================================================================
 SECTION 9: ACCESS THE APPLICATION
 ================================================================================
 
-# 9.1 Get the external LoadBalancer IP
-EXTERNAL_IP=$(kubectl get svc hello-gke -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+# 9.1 Get the external LoadBalancer IP from dev namespace
+EXTERNAL_IP=$(kubectl get svc hello-gke -n dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $EXTERNAL_IP
 
 # 9.2 Test the root endpoint
@@ -538,6 +561,165 @@ API DOCUMENTATION:
   Docker API: https://docs.docker.com/engine/api/
   GCloud API: https://cloud.google.com/docs/reference/libraries
 
+
+================================================================================
+SECTION 24: HELM DEPLOYMENT COMMANDS
+================================================================================
+
+# 24.1 Validate Helm chart
+helm lint helm/hello-gke/
+helm lint helm/hello-gke/ --strict
+
+# 24.2 Preview Helm manifests
+helm template hello-gke helm/hello-gke/
+helm template hello-gke helm/hello-gke/ --values helm/hello-gke/values-dev.yaml
+
+# 24.3 Dry-run Helm installation
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --dry-run --debug
+
+# 24.4 Create dev namespace if not exists
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+
+# 24.5 Install Helm release to dev namespace
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --wait \
+  --timeout 5m
+
+# 24.6 Install Helm release with custom image tag
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.0 \
+  --set image.pullPolicy=Always \
+  --wait
+
+# 24.7 List Helm releases
+helm list
+helm list -n dev
+helm list -a -A
+
+# 24.8 Get Helm release status
+helm status hello-gke -n dev
+
+# 24.9 Get release notes
+helm get notes hello-gke -n dev
+
+# 24.10 Get release values
+helm get values hello-gke -n dev
+
+# 24.11 Get generated manifests
+helm get manifest hello-gke -n dev
+
+# 24.12 Upgrade Helm release (update image)
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.1 \
+  --wait
+
+# 24.13 Upgrade Helm release (update configuration)
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set app.replicaCount=3 \
+  --set app.properties.logLevel=DEBUG \
+  --wait
+
+# 24.14 View Helm release history
+helm history hello-gke -n dev
+
+# 24.15 Rollback Helm release to previous version
+helm rollback hello-gke -n dev
+helm rollback hello-gke 1 -n dev
+
+# 24.16 Verify rollback
+helm status hello-gke -n dev
+helm history hello-gke -n dev
+
+# 24.17 Deploy to production with Helm
+helm install hello-gke-prod helm/hello-gke/ \
+  --namespace prod \
+  --values helm/hello-gke/values-prod.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.0 \
+  --wait \
+  --timeout 5m
+
+# 24.18 Deploy to multiple environments
+# Dev
+helm install hello-gke-dev helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# Staging
+helm install hello-gke-staging helm/hello-gke/ \
+  --namespace staging \
+  --values helm/hello-gke/values.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# Prod
+helm install hello-gke-prod helm/hello-gke/ \
+  --namespace prod \
+  --values helm/hello-gke/values-prod.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# 24.19 Check all Helm releases across namespaces
+helm list -A
+
+# 24.20 Get status of all releases
+helm list -A | grep hello-gke
+
+# 24.21 Uninstall Helm release
+helm uninstall hello-gke -n dev
+
+# 24.22 Uninstall release from all environments
+helm uninstall hello-gke-dev -n dev
+helm uninstall hello-gke-staging -n staging
+helm uninstall hello-gke-prod -n prod
+
+# 24.23 Uninstall and delete namespace
+helm uninstall hello-gke -n dev
+kubectl delete namespace dev
+
+# 24.24 Quick workflow - Deploy with Helm to dev
+export PROJECT_ID=$(gcloud config get-value project)
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+helm lint helm/hello-gke/
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --wait
+helm status hello-gke -n dev
+
+# 24.25 Quick workflow - Upgrade Helm release
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set image.tag=latest \
+  --wait
+helm status hello-gke -n dev
+
+# 24.26 Get external IP from Helm release
+EXTERNAL_IP=$(kubectl get svc hello-gke -n dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Application URL: http://$EXTERNAL_IP"
+
+# 24.27 Test application endpoints (after Helm deployment)
+curl http://${EXTERNAL_IP}/
+curl http://${EXTERNAL_IP}/api/hello
+curl http://${EXTERNAL_IP}/api/gke
+curl http://${EXTERNAL_IP}/actuator/health
+
 ================================================================================
 END OF DEPLOYMENT GUIDE
 ===============================================================================
@@ -548,26 +730,26 @@ SECTION 10: SCALE AND UPDATE DEPLOYMENT
 ================================================================================
 
 # 10.1 Scale up replicas
-kubectl scale deployment hello-gke --replicas=5
+kubectl scale deployment hello-gke --replicas=5 -n dev
 
 # 10.2 Scale down replicas
-kubectl scale deployment hello-gke --replicas=2
+kubectl scale deployment hello-gke --replicas=2 -n dev
 
 # 10.3 Check current replica count
-kubectl get deployment hello-gke
+kubectl get deployment hello-gke -n dev
 
 # 10.4 Update image to a new version
 kubectl set image deployment/hello-gke \
-  hello-gke=${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+  hello-gke=${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION} -n dev
 
 # 10.5 Check rollout status
-kubectl rollout status deployment/hello-gke
+kubectl rollout status deployment/hello-gke -n dev
 
 # 10.6 View rollout history
-kubectl rollout history deployment/hello-gke
+kubectl rollout history deployment/hello-gke -n dev
 
 # 10.7 Rollback to previous version
-kubectl rollout undo deployment/hello-gke
+kubectl rollout undo deployment/hello-gke -n dev
 
 
 ================================================================================
@@ -594,20 +776,23 @@ kubectl describe pod <pod-name>
 SECTION 12: CLEANUP (When Done)
 ================================================================================
 
-# 12.1 Delete the entire application deployment
-kubectl delete -f k8s/deployment.yaml
+# 12.1 Delete the entire application deployment from dev namespace
+kubectl delete -f k8s/deployment.yaml -n dev
 
 # 12.2 Delete specific deployment
-kubectl delete deployment hello-gke
+kubectl delete deployment hello-gke -n dev
 
 # 12.3 Delete service
-kubectl delete svc hello-gke
+kubectl delete svc hello-gke -n dev
 
 # 12.4 Delete ConfigMap
-kubectl delete configmap hello-gke-config
+kubectl delete configmap hello-gke-config -n dev
 
 # 12.5 Delete ServiceAccount
-kubectl delete serviceaccount hello-gke-sa
+kubectl delete serviceaccount hello-gke-sa -n dev
+
+# 12.6 Delete the entire dev namespace
+kubectl delete namespace dev
 
 # 12.6 Delete GKE cluster (WARNING: This deletes the entire cluster)
 gcloud container clusters delete ${CLUSTER_NAME} --zone ${ZONE}
@@ -824,33 +1009,36 @@ sed -i '' "s|gcr.io/gcp-poc-496714/hello-gke:latest|${REGISTRY}/${PROJECT_ID}/${
 SECTION 7: DEPLOY APPLICATION TO GKE
 ================================================================================
 
-# 7.1 Deploy all resources (Deployment, Service, ConfigMap, ServiceAccount)
-kubectl apply -f k8s/deployment.yaml
+# 7.1 Create dev namespace if not exists
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
 
-# 7.2 Verify deployment was created
-kubectl get deployments
+# 7.2 Deploy all resources to dev namespace (Deployment, Service, ConfigMap, ServiceAccount)
+kubectl apply -f k8s/deployment.yaml -n dev
 
-# 7.3 Check pods status
-kubectl get pods -l app=hello-gke
+# 7.3 Verify deployment was created
+kubectl get deployments -n dev
 
-# 7.4 Watch pods being created
-kubectl get pods -l app=hello-gke --watch
+# 7.4 Check pods status
+kubectl get pods -l app=hello-gke -n dev
 
-# 7.5 Get detailed pod information
-kubectl describe pods -l app=hello-gke
+# 7.5 Watch pods being created
+kubectl get pods -l app=hello-gke -n dev --watch
 
-# 7.6 Check services
-kubectl get svc hello-gke
+# 7.6 Get detailed pod information
+kubectl describe pods -l app=hello-gke -n dev
 
-# 7.7 Watch for LoadBalancer external IP (may take 1-2 minutes)
-kubectl get svc hello-gke --watch
+# 7.7 Check services
+kubectl get svc hello-gke -n dev
+
+# 7.8 Watch for LoadBalancer external IP (may take 1-2 minutes)
+kubectl get svc hello-gke -n dev --watch
 
 ================================================================================
 SECTION 9: ACCESS THE APPLICATION
 ================================================================================
 
-# 9.1 Get the external LoadBalancer IP
-EXTERNAL_IP=$(kubectl get svc hello-gke -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+# 9.1 Get the external LoadBalancer IP from dev namespace
+EXTERNAL_IP=$(kubectl get svc hello-gke -n dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
 echo $EXTERNAL_IP
 
 # 9.2 Test the root endpoint
@@ -1203,6 +1391,203 @@ API DOCUMENTATION:
   Docker API: https://docs.docker.com/engine/api/
   GCloud API: https://cloud.google.com/docs/reference/libraries
 
+
+================================================================================
+SECTION 24: HELM DEPLOYMENT COMMANDS
+================================================================================
+
+# 24.1 Validate Helm chart
+helm lint helm/hello-gke/
+helm lint helm/hello-gke/ --strict
+
+# 24.2 Preview Helm manifests
+helm template hello-gke helm/hello-gke/
+helm template hello-gke helm/hello-gke/ --values helm/hello-gke/values-dev.yaml
+
+# 24.3 Dry-run Helm installation
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --dry-run --debug
+
+# 24.4 Create dev namespace if not exists
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+
+# 24.5 Install Helm release to dev namespace
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --wait \
+  --timeout 5m
+
+# 24.6 Install Helm release with custom image tag
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.0 \
+  --set image.pullPolicy=Always \
+  --wait
+
+# 24.7 List Helm releases
+helm list
+helm list -n dev
+helm list -a -A
+
+# 24.8 Get Helm release status
+helm status hello-gke -n dev
+
+# 24.9 Get release notes
+helm get notes hello-gke -n dev
+
+# 24.10 Get release values
+helm get values hello-gke -n dev
+
+# 24.11 Get generated manifests
+helm get manifest hello-gke -n dev
+
+# 24.12 Upgrade Helm release (update image)
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.1 \
+  --wait
+
+# 24.13 Upgrade Helm release (update configuration)
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set app.replicaCount=3 \
+  --set app.properties.logLevel=DEBUG \
+  --wait
+
+# 24.14 View Helm release history
+helm history hello-gke -n dev
+
+# 24.15 Rollback Helm release to previous version
+helm rollback hello-gke -n dev
+helm rollback hello-gke 1 -n dev
+
+# 24.16 Verify rollback
+helm status hello-gke -n dev
+helm history hello-gke -n dev
+
+# 24.17 Deploy to production with Helm
+helm install hello-gke-prod helm/hello-gke/ \
+  --namespace prod \
+  --values helm/hello-gke/values-prod.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --set image.tag=v1.0.0 \
+  --wait \
+  --timeout 5m
+
+# 24.18 Deploy to multiple environments
+# Dev
+helm install hello-gke-dev helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# Staging
+helm install hello-gke-staging helm/hello-gke/ \
+  --namespace staging \
+  --values helm/hello-gke/values.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# Prod
+helm install hello-gke-prod helm/hello-gke/ \
+  --namespace prod \
+  --values helm/hello-gke/values-prod.yaml \
+  --set global.projectId=${PROJECT_ID}
+
+# 24.19 Check all Helm releases across namespaces
+helm list -A
+
+# 24.20 Get status of all releases
+helm list -A | grep hello-gke
+
+# 24.21 Uninstall Helm release
+helm uninstall hello-gke -n dev
+
+# 24.22 Uninstall release from all environments
+helm uninstall hello-gke-dev -n dev
+helm uninstall hello-gke-staging -n staging
+helm uninstall hello-gke-prod -n prod
+
+# 24.23 Uninstall and delete namespace
+helm uninstall hello-gke -n dev
+kubectl delete namespace dev
+
+# 24.24 Quick workflow - Deploy with Helm to dev
+export PROJECT_ID=$(gcloud config get-value project)
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+helm lint helm/hello-gke/
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --wait
+helm status hello-gke -n dev
+
+# 24.25 Quick workflow - Upgrade Helm release
+helm upgrade hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set image.tag=latest \
+  --wait
+helm status hello-gke -n dev
+
+# 24.26 Get external IP from Helm release
+EXTERNAL_IP=$(kubectl get svc hello-gke -n dev -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo "Application URL: http://$EXTERNAL_IP"
+
+# 24.27 Test application endpoints (after Helm deployment)
+curl http://${EXTERNAL_IP}/
+curl http://${EXTERNAL_IP}/api/hello
+curl http://${EXTERNAL_IP}/api/gke
+curl http://${EXTERNAL_IP}/actuator/health
+
 ================================================================================
 END OF DEPLOYMENT GUIDE
 ===============================================================================
+
+
+
+
+
+
+
+
+*****************************
+
+#gcloud auth login
+
+gcloud config set project gcp-poc-496714
+gcloud config get-value project
+gcloud auth configure-docker
+
+export PROJECT_ID=$(gcloud config get-value project)
+export IMAGE_NAME=hello-gke
+export IMAGE_TAG=latest
+export REGISTRY=gcr.io
+
+docker buildx build --platform linux/amd64 -t ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} --load .
+docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+gcloud container images list --filter="name:hello-gke"
+gcloud container images describe ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+
+kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
+
+helm lint helm/hello-gke/
+helm install hello-gke helm/hello-gke/ \
+  --namespace dev \
+  --values helm/hello-gke/values-dev.yaml \
+  --set global.projectId=${PROJECT_ID} \
+  --wait
+
+helm status hello-gke -n dev
+
+kubectl get pods -l app=hello-gke -n dev --watch

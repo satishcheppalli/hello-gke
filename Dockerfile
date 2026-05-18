@@ -4,8 +4,16 @@ FROM eclipse-temurin:17-jdk-jammy as builder
 WORKDIR /app
 COPY . .
 
-RUN apt-get update && apt-get install -y gradle && rm -rf /var/lib/apt/lists/*
-RUN gradle build -x test
+RUN apt-get update && apt-get install -y curl unzip && rm -rf /var/lib/apt/lists/*
+
+# Install Gradle 8.10
+RUN curl -L https://services.gradle.org/distributions/gradle-8.10-bin.zip -o gradle.zip && \
+    unzip -q gradle.zip && \
+    rm gradle.zip && \
+    mv gradle-8.10 /opt/gradle && \
+    ln -s /opt/gradle/bin/gradle /usr/local/bin/gradle
+
+RUN gradle bootJar -x test
 
 # Runtime stage
 FROM eclipse-temurin:17-jre-jammy

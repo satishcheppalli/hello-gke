@@ -1,0 +1,386 @@
+================================================================================
+COMPLETE DEPLOYMENT GUIDE: Docker Build, GCR Push, and Kubernetes Deployment
+================================================================================
+
+This file contains all commands needed to build a Docker image, push it to
+Google Container Registry (GCR), and deploy to Google Kubernetes Engine (GKE).
+
+================================================================================
+SECTION 1: PREREQUISITES & AUTHENTICATION
+================================================================================
+
+# 1.1 Authenticate with Google Cloud Platform
+gcloud auth login
+
+# 1.2 Set your GCP project
+gcloud config set project YOUR_PROJECT_ID
+
+# 1.3 Verify project is set
+gcloud config get-value project
+
+# 1.4 Configure Docker authentication with GCR
+gcloud auth configure-docker
+
+# 1.5 Enable required GCP APIs
+gcloud services enable containerregistry.googleapis.com
+gcloud services enable container.googleapis.com
+gcloud services enable artifactregistry.googleapis.com
+
+
+================================================================================
+SECTION 2: BUILD DOCKER IMAGE
+================================================================================
+
+# 2.1 Set environment variables
+export PROJECT_ID=$(gcloud config get-value project)
+export IMAGE_NAME=hello-gke
+export IMAGE_TAG=latest
+export REGISTRY=gcr.io
+
+# 2.2 Build Docker image for AMD64 (GKE compatible architecture)
+docker buildx build --platform linux/amd64 -t ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} --load .
+
+# Alternative: Build without specifying platform (for local testing)
+docker build -t ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} .
+
+# 2.3 Verify the image was built
+docker images | grep hello-gke
+
+# 2.4 Test the image locally (optional)
+docker run -d -p 8080:8080 --name hello-gke-test ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+sleep 5
+curl http://localhost:8080/
+docker stop hello-gke-test
+docker rm hello-gke-test
+
+
+================================================================================
+SECTION 3: PUSH IMAGE TO GOOGLE CONTAINER REGISTRY
+================================================================================
+
+# 3.1 Push image to GCR
+docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+
+# 3.2 Verify the image in GCR
+gcloud container images list --repository-format=list --filter="name:hello-gke"
+
+# 3.3 View image details in GCR
+gcloud container images describe ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}
+
+# 3.4 Tag with version number (optional - recommended for production)
+export VERSION=1.0.0
+docker tag ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+docker push ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+
+
+================================================================================
+SECTION 4: CREATE GKE CLUSTER (if needed)
+================================================================================
+
+# 4.1 Create a new GKE cluster
+export CLUSTER_NAME=hello-gke-cluster
+export ZONE=us-central1-a
+export REGION=us-central1
+export NUM_NODES=3
+
+gcloud container clusters create ${CLUSTER_NAME} \
+  --zone ${ZONE} \
+  --num-nodes ${NUM_NODES} \
+  --machine-type n1-standard-1 \
+  --enable-stackdriver-kubernetes \
+  --logging=SYSTEM_COMPONENTS,WORKLOADS \
+  --monitoring=SYSTEM_COMPONENTS,WORKLOADS
+
+# 4.2 List all clusters
+gcloud container clusters list
+
+# 4.3 Describe a specific cluster
+gcloud container clusters describe ${CLUSTER_NAME} --zone ${ZONE}
+
+
+================================================================================
+SECTION 5: CONFIGURE KUBECTL FOR GKE CLUSTER
+================================================================================
+
+# 5.1 Get cluster credentials (configures kubectl authentication)
+gcloud container clusters get-credentials ${CLUSTER_NAME} --zone ${ZONE}
+
+# 5.2 Verify kubectl connection to cluster
+kubectl cluster-info
+
+# 5.3 View cluster context
+kubectl config current-context
+
+# 5.4 List available contexts
+kubectl config get-contexts
+
+# 5.5 Switch to a different context (if needed)
+kubectl config use-context <context-name>
+
+
+================================================================================
+SECTION 6: UPDATE DEPLOYMENT MANIFEST
+================================================================================
+
+# 6.1 Update k8s/deployment.yaml with your image reference
+# Edit line 22 in k8s/deployment.yaml:
+# OLD: image: gcr.io/gcp-poc-496714/hello-gke:latest
+# NEW: image: gcr.io/${PROJECT_ID}/hello-gke:latest
+
+# Or use sed to replace automatically:
+sed -i '' "s|gcr.io/gcp-poc-496714/hello-gke:latest|${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG}|g" k8s/deployment.yaml
+
+
+================================================================================
+SECTION 7: DEPLOY APPLICATION TO GKE
+================================================================================
+
+# 7.1 Deploy all resources (Deployment, Service, ConfigMap, ServiceAccount)
+kubectl apply -f k8s/deployment.yaml
+
+# 7.2 Verify deployment was created
+kubectl get deployments
+
+# 7.3 Check pods status
+kubectl get pods -l app=hello-gke
+
+# 7.4 Watch pods being created
+kubectl get pods -l app=hello-gke --watch
+
+# 7.5 Get detailed pod information
+kubectl describe pods -l app=hello-gke
+
+# 7.6 Check services
+kubectl get svc hello-gke
+
+# 7.7 Watch for LoadBalancer external IP (may take 1-2 minutes)
+kubectl get svc hello-gke --watch
+
+
+================================================================================
+SECTION 8: VIEW APPLICATION LOGS
+================================================================================
+
+# 8.1 View logs from all pods with app=hello-gke label
+kubectl logs -l app=hello-gke --tail=50
+
+# 8.2 Stream logs continuously
+kubectl logs -l app=hello-gke --tail=50 -f
+
+# 8.3 View logs from a specific pod
+kubectl logs <pod-name> --tail=100
+
+# 8.4 Stream logs from a specific pod
+kubectl logs <pod-name> -f
+
+# 8.5 View logs with timestamps
+kubectl logs -l app=hello-gke --timestamps=true
+
+# 8.6 Get previous pod logs (if pod crashed)
+kubectl logs <pod-name> --previous
+
+
+================================================================================
+SECTION 9: ACCESS THE APPLICATION
+================================================================================
+
+# 9.1 Get the external LoadBalancer IP
+EXTERNAL_IP=$(kubectl get svc hello-gke -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+echo $EXTERNAL_IP
+
+# 9.2 Test the root endpoint
+curl http://${EXTERNAL_IP}/
+
+# 9.3 Test the API endpoint
+curl http://${EXTERNAL_IP}/api/hello
+
+# 9.4 Test health check endpoint
+curl http://${EXTERNAL_IP}/actuator/health
+
+# 9.5 Test liveness probe
+curl http://${EXTERNAL_IP}/actuator/health/liveness
+
+# 9.6 Test readiness probe
+curl http://${EXTERNAL_IP}/actuator/health/readiness
+
+# 9.7 Pretty print JSON response
+curl http://${EXTERNAL_IP}/ | jq .
+
+
+================================================================================
+SECTION 10: SCALE AND UPDATE DEPLOYMENT
+================================================================================
+
+# 10.1 Scale up replicas
+kubectl scale deployment hello-gke --replicas=5
+
+# 10.2 Scale down replicas
+kubectl scale deployment hello-gke --replicas=2
+
+# 10.3 Check current replica count
+kubectl get deployment hello-gke
+
+# 10.4 Update image to a new version
+kubectl set image deployment/hello-gke \
+  hello-gke=${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${VERSION}
+
+# 10.5 Check rollout status
+kubectl rollout status deployment/hello-gke
+
+# 10.6 View rollout history
+kubectl rollout history deployment/hello-gke
+
+# 10.7 Rollback to previous version
+kubectl rollout undo deployment/hello-gke
+
+
+================================================================================
+SECTION 11: MONITOR RESOURCES
+================================================================================
+
+# 11.1 Check pod resource usage
+kubectl top pods -l app=hello-gke
+
+# 11.2 Check node resource usage
+kubectl top nodes
+
+# 11.3 Get pod events
+kubectl get events
+
+# 11.4 Describe service
+kubectl describe svc hello-gke
+
+# 11.5 View pod details
+kubectl describe pod <pod-name>
+
+
+================================================================================
+SECTION 12: CLEANUP (When Done)
+================================================================================
+
+# 12.1 Delete the entire application deployment
+kubectl delete -f k8s/deployment.yaml
+
+# 12.2 Delete specific deployment
+kubectl delete deployment hello-gke
+
+# 12.3 Delete service
+kubectl delete svc hello-gke
+
+# 12.4 Delete ConfigMap
+kubectl delete configmap hello-gke-config
+
+# 12.5 Delete ServiceAccount
+kubectl delete serviceaccount hello-gke-sa
+
+# 12.6 Delete GKE cluster (WARNING: This deletes the entire cluster)
+gcloud container clusters delete ${CLUSTER_NAME} --zone ${ZONE}
+
+# 12.7 Delete image from GCR (WARNING: This removes the image from registry)
+gcloud container images delete ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE_TAG} --quiet
+
+
+================================================================================
+SECTION 13: TROUBLESHOOTING COMMANDS
+================================================================================
+
+# 13.1 Check image exists in GCR
+gcloud container images list --repository-format=list
+
+# 13.2 Debug pod startup issues
+kubectl describe pod <pod-name>
+
+# 13.3 Check pod events for errors
+kubectl get events --sort-by='.lastTimestamp' | tail -20
+
+# 13.4 Execute command in running pod
+kubectl exec -it <pod-name> -- /bin/bash
+
+# 13.5 Port forward to access service locally
+kubectl port-forward svc/hello-gke 8080:80
+
+# 13.6 Check service endpoints
+kubectl get endpoints hello-gke
+
+# 13.7 Verify image pull by checking node
+kubectl get pods -o wide
+
+# 13.8 Check kubelet logs on node (requires SSH access)
+gcloud compute ssh <node-name> --zone=${ZONE}
+journalctl -u kubelet -n 100
+
+
+================================================================================
+SECTION 14: QUICK START - COMPLETE WORKFLOW
+================================================================================
+
+# Run these commands in sequence to complete full deployment:
+
+# Set variables
+export PROJECT_ID=$(gcloud config get-value project)
+export CLUSTER_NAME=hello-gke-cluster
+export ZONE=us-central1-a
+
+# 1. Build Docker image
+docker buildx build --platform linux/amd64 -t gcr.io/${PROJECT_ID}/hello-gke:latest --load .
+
+# 2. Push to GCR
+gcloud auth configure-docker
+docker push gcr.io/${PROJECT_ID}/hello-gke:latest
+
+# 3. Update deployment manifest
+sed -i '' "s|gcr.io/gcp-poc-496714/hello-gke:latest|gcr.io/${PROJECT_ID}/hello-gke:latest|g" k8s/deployment.yaml
+
+# 4. Get cluster credentials
+gcloud container clusters get-credentials ${CLUSTER_NAME} --zone ${ZONE}
+
+# 5. Deploy application
+kubectl apply -f k8s/deployment.yaml
+
+# 6. Wait for pods to be ready
+kubectl get pods -l app=hello-gke --watch
+
+# 7. Get external IP
+kubectl get svc hello-gke --watch
+
+# 8. Test the application
+EXTERNAL_IP=$(kubectl get svc hello-gke -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
+curl http://${EXTERNAL_IP}/
+
+
+================================================================================
+SECTION 15: IMPORTANT NOTES
+================================================================================
+
+⚠️  BEFORE DEPLOYMENT:
+- Replace YOUR_PROJECT_ID with your actual GCP project ID
+- Ensure you have a GKE cluster already created, or create one using Section 4
+- Update k8s/deployment.yaml with the correct image reference (Section 6)
+
+✅  BEST PRACTICES:
+- Always build for amd64 platform (GKE compatible)
+- Use semantic versioning for image tags (v1.0.0, v1.0.1, etc.)
+- Use ConfigMaps for configuration instead of hardcoding
+- Set resource requests and limits in deployment
+- Enable logging and monitoring in GKE cluster
+- Use namespaces to organize resources
+- Implement health checks and probes
+
+🔒  SECURITY:
+- Use non-root user in Docker image (already configured)
+- Enable Pod Security Policies in GKE
+- Use RBAC for access control
+- Enable network policies
+- Scan images for vulnerabilities
+- Use private image registries
+- Rotate credentials regularly
+
+📊  MONITORING:
+- Enable Cloud Logging and Cloud Monitoring
+- Set up alerts for critical metrics
+- Monitor pod CPU and memory usage
+- Check deployment health regularly
+
+================================================================================
+END OF DEPLOYMENT GUIDE
+================================================================================

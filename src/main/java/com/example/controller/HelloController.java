@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
-@RequestMapping("/api")
 public class HelloController {
 
     @Value("${app.message}")
@@ -22,7 +21,7 @@ public class HelloController {
     @Value("${app.environment}")
     private String appEnvironment;
 
-    @GetMapping("/hello")
+    @GetMapping("/api/hello")
     public ResponseEntity<ApiResponse> hello() throws ApplicationException {
         try {
             if (appMessage == null || appMessage.isEmpty()) {

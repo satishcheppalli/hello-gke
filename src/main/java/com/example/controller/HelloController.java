@@ -22,6 +22,9 @@ public class HelloController {
     @Value("${app.environment}")
     private String appEnvironment;
 
+    @Value("${app.gke.message}")
+    private String gkeMessage;
+
     @GetMapping("/api/hello")
     public ResponseEntity<ApiResponse> hello() throws ApplicationException {
         try {
@@ -49,6 +52,6 @@ public class HelloController {
 
     @GetMapping(value = "/api/gke", produces = MediaType.TEXT_PLAIN_VALUE)
     public ResponseEntity<String> gkeMessage() {
-        return ResponseEntity.ok("*****This message is from GKE*****");
+        return ResponseEntity.ok(gkeMessage);
     }
 }

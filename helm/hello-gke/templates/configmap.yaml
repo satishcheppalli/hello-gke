@@ -17,6 +17,7 @@ data:
     app.message={{ .Values.app.properties.message }}
     app.version={{ .Values.app.properties.version }}
     app.environment={{ .Values.app.properties.environment }}
+    app.gke.message={{ .Values.app.properties.gkeMessage }}
 
     # Actuator properties
     {{- if .Values.app.actuator.enabled }}

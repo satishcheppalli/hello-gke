@@ -1582,7 +1582,7 @@ gcloud container images describe ${REGISTRY}/${PROJECT_ID}/${IMAGE_NAME}:${IMAGE
 kubectl create namespace dev --dry-run=client -o yaml | kubectl apply -f -
 
 helm lint helm/hello-gke/
-helm install hello-gke helm/hello-gke/ \
+helm upgrade --install hello-gke helm/hello-gke/ \
   --namespace dev \
   --values helm/hello-gke/values-dev.yaml \
   --set global.projectId=${PROJECT_ID} \

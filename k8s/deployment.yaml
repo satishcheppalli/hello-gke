@@ -13,6 +13,8 @@ spec:
       app: hello-gke
   template:
     metadata:
+      annotations:
+        configmap.reloader.stakater.com/match: "true"
       labels:
         app: hello-gke
         version: v1

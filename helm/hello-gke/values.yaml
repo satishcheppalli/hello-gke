@@ -23,7 +23,7 @@ app:
     message: "hello gke"
     version: "1.0.0"
     environment: "gke"
-    gkeMessage: "*****This message is from GKE*****"
+    gkeMessage: "*****This message is from GKE (message is from configmap) *****"
     logLevel: "INFO"
     logLevelApp: "DEBUG"
 

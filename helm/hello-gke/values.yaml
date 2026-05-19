@@ -2,7 +2,7 @@
 
 # Global configuration
 global:
-  projectId: "YOUR_PROJECT_ID"
+  projectId: "gcp-poc-496714"
   region: "us-central1"
   zone: "us-central1-a"
 
